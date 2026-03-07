@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Defining the path to the working Docker binary to avoid the "shorthand flag" error
-        DOCKER_PATH = '/usr/local/bin/docker'
+        // We know this path triggers 'docker compose' on your machine
+        DOCKER_COMPOSE = '/usr/local/bin/docker'
     }
 
     stages {
@@ -16,26 +16,20 @@ pipeline {
 
         stage('Run Playwright') {
             steps {
-                script {
-                    // 1. Build the image (Bakes the playwright.config.ts and tests into the container)
-                    sh "${DOCKER_PATH} build -t playwright-runner ."
-
-                    // 2. Run the tests
-                    // We use host.docker.internal to bridge back to your Windows app on port 4200
-                    sh "${DOCKER_PATH} run --rm -e BASE_URL=http://host.docker.internal:4200 playwright-runner"
-                }
+                // --abort-on-container-exit: If tests fail, the job turns RED.
+                // --exit-code-from: Tells Jenkins to report the failure from this specific container.
+                sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
             }
         }
     }
 
     post {
         always {
-            echo 'Cleaning up old images...'
-            // Optional: Keeps your Jenkins environment tidy
-            sh "${DOCKER_PATH} image prune -f"
+            echo 'Cleaning up containers...'
+            sh "${DOCKER_COMPOSE} down"
         }
         failure {
-            echo 'Tests failed! Check the Playwright trace logs.'
+            echo 'Playwright tests failed. Check the Jenkins console for details.'
         }
     }
 }
