@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DOCKER_COMPOSE = '/usr/local/bin/docker'
+        // This ensures the container knows where the app is
+        BASE_URL = 'http://host.docker.internal:4200'
     }
 
     stages {
@@ -15,13 +17,8 @@ pipeline {
         stage('Run Playwright') {
             steps {
                 script {
-                    // 1. Run tests. 
-                    sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit"
-                    
-                    // 2. Identify the container name and copy the report
-                    // This command finds the container ID for our service and copies the report out
-                    def containerId = sh(script: "${DOCKER_COMPOSE} ps -a -q playwright-runner", returnStdout: true).trim()
-                    sh "${DOCKER_COMPOSE} cp ${containerId}:/app/playwright-report ./"
+                    // 1. Run tests. We keep the exit code to ensure Jenkins knows if tests fail.
+                    sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
                 }
             }
         }
@@ -29,9 +26,14 @@ pipeline {
 
     post {
         always {
-            // This works even without the HTML Publisher plugin!
-            // It will appear under "Build Artifacts"
-            archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
+            script {
+                echo 'Extracting Test Report...'
+                // 2. Use the Service Name directly. Compose handles the rest!
+                sh "${DOCKER_COMPOSE} cp playwright-runner:/app/playwright-report ./"
+                
+                // 3. Archive the results so you can download them from the build page
+                archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
+            }
             
             echo 'Cleaning up...'
             sh "${DOCKER_COMPOSE} down"
