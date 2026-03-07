@@ -10,8 +10,9 @@ pipeline {
         stage('Run Playwright') {
             steps {
                 // We use -u to ensure permissions match and check the file list before running
+                // This will show us if the files actually exist in Jenkins
                 sh """
-                    ls -al // This will show us if the files actually exist in Jenkins
+                    ls -al
                     docker run --rm \
                     -v /var/jenkins_home/workspace/Bondar-Playwright-Tests:/tests \
                     -w /tests \
