@@ -1,0 +1,6 @@
+services:
+  playwright-runner:
+    build: .
+    environment:
+      # This pulls from Jenkins, or defaults to your Windows host bridge
+      - BASE_URL=${BASE_URL:-http://host.docker.internal:4200}
