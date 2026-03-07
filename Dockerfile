@@ -1,10 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.45.0-jammy
-
-WORKDIR /tests
-COPY package.json package-lock.json ./
+WORKDIR /app
+COPY package*.json ./
 RUN npm install
 COPY . .
-
-# We don't use 'up -d' here because we WANT the logs 
-# to stream into Jenkins so we can see why a test failed.
+# This ensures the config is found in the current WORKDIR
 CMD ["npx", "playwright", "test"]

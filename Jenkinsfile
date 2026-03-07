@@ -9,16 +9,15 @@ pipeline {
         }
         stage('Run Playwright') {
             steps {
-                // We use -u to ensure permissions match and check the file list before running
-                // This will show us if the files actually exist in Jenkins
                 sh """
-                    ls -al
+                    # 1. Build the test image (This bakes the config into the image)
+                    docker build -t playwright-tests .
+                    
+                    # 2. Run it against your Windows Host
+                    # Use host.docker.internal to let the container 'see' your Windows machine
                     docker run --rm \
-                    -v /var/jenkins_home/workspace/Bondar-Playwright-Tests:/tests \
-                    -w /tests \
-                    -e BASE_URL=http://localhost:4200/pages/iot-dashboard \
-                    mcr.microsoft.com/playwright:v1.45.0-jammy \
-                    /bin/bash -c "npm install && npx playwright test"
+                    -e BASE_URL=http://host.docker.internal:4200 \
+                    playwright-tests
                 """
             }
         }
