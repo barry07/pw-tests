@@ -1,7 +1,7 @@
 services:
   # 1. Your Frontend/Application Service
   bondar-practice-app:
-    image: bondar-practice-app:latest # Replace with your actual image
+    image: bondar-practice-app-practice-app:latest # Replace with your actual image
     ports:
       - "4200:4200"
     healthcheck:
