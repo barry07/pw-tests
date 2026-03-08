@@ -1,18 +1,29 @@
 services:
-
-  practice-app:
-    build: ../bondar-practice-app
+  # 1. Your Frontend/Application Service
+  bondar-practice-app:
+    image: your-registry/bondar-practice-app:latest # Replace with your actual image
     ports:
       - "4200:4200"
+    healthcheck:
+      # This checks if the web server is actually responding
+      test: ["CMD", "curl", "-f", "http://localhost:4200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
+  # 2. Your Playwright Test Runner
   playwright-runner:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
-      - practice-app
+      bondar-practice-app:
+        # This is the "Magic" - it won't start tests until the app is HEALTHY
+        condition: service_healthy
     environment:
-      - BASE_URL=http://practice-app:4200
-
-  jenkins:
-    image: jenkins/jenkins:lts
-    environment:
-      - JAVA_OPTS=-Dhudson.model.DirectoryBrowserSupport.CSP=""
+      # Use the service name 'bondar-practice-app' as the hostname
+      - BASE_URL=http://bondar-practice-app:4200
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results
