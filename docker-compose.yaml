@@ -3,7 +3,7 @@ services:
   bondar-practice-app:
     image: bondar-practice-app-practice-app:latest # Replace with your actual image
     ports:
-      - "4200:4200"
+      - "4201:4200"
     healthcheck:
       # This checks if the web server is actually responding
       test: ["CMD", "curl", "-f", "http://localhost:4200"]

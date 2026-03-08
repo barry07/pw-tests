@@ -17,7 +17,7 @@ pipeline {
         stage('Run Playwright') {
             steps {
                 script {
-                    sh "netstat -ano || findstr :4200"
+                    //sh "netstat -ano || findstr :4200"
                     sh 'sleep 30'
                     // 1. Run tests. We keep the exit code to ensure Jenkins knows if tests fail.
                     sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
