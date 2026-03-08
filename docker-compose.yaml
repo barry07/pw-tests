@@ -1,11 +1,23 @@
 services:
+
+  practice-app:
+    image: bondar-academy/practice-app
+    container_name: practice-app
+    ports:
+      - "4200:4200"
+
   playwright-runner:
     build: .
+    container_name: playwright-runner
+    depends_on:
+      - practice-app
     environment:
-      # This pulls from Jenkins, or defaults to your Windows host bridge
-      - BASE_URL=${BASE_URL}
-      
+      - BASE_URL=http://practice-app:4200
+
   jenkins:
     image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
     environment:
       - JAVA_OPTS=-Dhudson.model.DirectoryBrowserSupport.CSP=""
