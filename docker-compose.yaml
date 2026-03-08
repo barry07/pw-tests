@@ -4,3 +4,7 @@ services:
     environment:
       # This pulls from Jenkins, or defaults to your Windows host bridge
       - BASE_URL=${BASE_URL}
+      
+  jenkins:
+    environment:
+      - JAVA_OPTS=-Dhudson.model.DirectoryBrowserSupport.CSP=""
