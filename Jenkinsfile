@@ -18,8 +18,8 @@ pipeline {
             steps {
                 script {
                     // 1. Run tests. We keep the exit code to ensure Jenkins knows if tests fail.
-                    //sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
-                    sh "/usr/local/bin/docker compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    //sh "/usr/local/bin/docker compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
                 }
             }
         }

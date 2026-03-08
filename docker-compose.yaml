@@ -6,5 +6,6 @@ services:
       - BASE_URL=${BASE_URL}
       
   jenkins:
+    image: jenkins/jenkins:lts
     environment:
       - JAVA_OPTS=-Dhudson.model.DirectoryBrowserSupport.CSP=""
