@@ -1,39 +1,38 @@
 pipeline {
     agent any
+    
+    environment {
+        // Use the IP of your Jenkins/Docker host
+        APP_URL = "http://host.docker.internal:4201" 
+    }
+
     stages {
-        stage('Checkout') {
+        stage('Install Dependencies') {
             steps {
-                checkout scm // Get the Playwright tests
-                dir('app-source') {
-                    // Get the actual Angular App code
-                    git url: 'https://github.com/barry07/bondar-practice-app.git', branch: 'master'
-                }
+                // We still need the Playwright runner logic
+                sh 'npm install'
             }
         }
-        stage('Build & Run App') {
+
+        stage('Run Playwright Tests') {
             steps {
-                script {
-                    echo "Building Production Angular Image..."
-                    sh "docker-compose build bondar-practice-app"
-                    sh "docker-compose up -d bondar-practice-app"
-                    sh "sleep 10" 
-                }
-            }
-        }
-        stage('Run Tests') {
-            steps {
-                // Pointing to the Nginx port (80)
-                sh "docker-compose run --name playwright-test-container playwright-runner npx playwright test --workers=1 --project=chromium"
+                // We point Playwright to the App we built in #147
+                sh "PLAYWRIGHT_TEST_BASE_URL=${APP_URL} npx playwright test"
             }
         }
     }
+
     post {
         always {
-            script {
-                sh "docker cp playwright-test-container:/app/playwright-report ./ || true"
-                archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
-                sh "docker-compose down"
-            }
+            // This saves your test results so you can see them in Jenkins
+            publishHTML(target: [
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright HTML Report'
+            ])
         }
     }
 }
