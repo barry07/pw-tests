@@ -20,7 +20,7 @@ services:
     depends_on:
       bondar-practice-app:
         # This is the "Magic" - it won't start tests until the app is HEALTHY
-        condition: service_healthy
+        #condition: service_healthy
     environment:
       # Use the service name 'bondar-practice-app' as the hostname
       - BASE_URL=http://bondar-practice-app:4200
