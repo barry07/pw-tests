@@ -1,39 +1,29 @@
 pipeline {
     agent any
 
-    environment {
-        // We set this to the base docker command
-        DOCKER_COMPOSE = '/usr/local/bin/docker'
-    }
-
     stages {
-        stage('Cleanup Environment') {
+        stage('Cleanup') {
             steps {
                 script {
-                    echo "Cleaning up any old containers..."
-                    // Result: docker compose down
-                    sh "${DOCKER_COMPOSE} compose down --remove-orphans || true"
+                    echo "Force cleaning previous runs..."
+                    // Direct command, no variables to mess up
+                    sh "/usr/local/bin/docker compose down --remove-orphans || true"
                 }
-            }
-        }
-
-        stage('Checkout SCM') {
-            steps {
-                echo "Checking out Playwright tests..."
             }
         }
 
         stage('Run Playwright Tests') {
             steps {
                 script {
-                    echo "Starting the Angular App..."
-                    sh "${DOCKER_COMPOSE} compose up -d bondar-practice-app"
+                    echo "Starting Angular App..."
+                    sh "/usr/local/bin/docker compose up -d bondar-practice-app"
 
-                    echo "Waiting 150 seconds for Angular to compile..."
-                    sh "sleep 150"
+                    // This is the long wait for 'Generating browser application bundles'
+                    echo "Waiting 160 seconds for Angular compilation..."
+                    sh "sleep 160"
 
-                    echo "Starting tests..."
-                    sh "${DOCKER_COMPOSE} compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    echo "Launching Playwright Runner..."
+                    sh "/usr/local/bin/docker compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
                 }
             }
         }
@@ -42,14 +32,14 @@ pipeline {
     post {
         always {
             script {
-                echo "Extracting Test Report..."
-                // Using standard docker cp
+                echo "Attempting to copy report..."
+                // We use the project name prefix 'bondar-playwright-tests' 
                 sh "docker cp bondar-playwright-tests-playwright-runner-1:/app/playwright-report ./ || true"
                 
                 archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
                 
-                echo "Cleaning up..."
-                sh "${DOCKER_COMPOSE} compose down"
+                echo "Final Cleanup..."
+                sh "/usr/local/bin/docker compose down"
             }
         }
     }
