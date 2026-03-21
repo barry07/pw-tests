@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_COMPOSE = '/usr/local/bin/docker compose'
+        // We set this to the base docker command
+        DOCKER_COMPOSE = '/usr/local/bin/docker'
     }
 
     stages {
@@ -10,7 +11,8 @@ pipeline {
             steps {
                 script {
                     echo "Cleaning up any old containers..."
-                    sh "${DOCKER_COMPOSE} down --remove-orphans || true"
+                    // Result: docker compose down
+                    sh "${DOCKER_COMPOSE} compose down --remove-orphans || true"
                 }
             }
         }
@@ -18,7 +20,6 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 echo "Checking out Playwright tests..."
-                // Checkout is handled automatically by Jenkins
             }
         }
 
@@ -26,15 +27,13 @@ pipeline {
             steps {
                 script {
                     echo "Starting the Angular App..."
-                    // 1. Start the app in the background
-                    sh "${DOCKER_COMPOSE} up -d bondar-practice-app"
+                    sh "${DOCKER_COMPOSE} compose up -d bondar-practice-app"
 
-                    // 2. Wait for Angular to compile (based on build #127 logs)
                     echo "Waiting 150 seconds for Angular to compile..."
                     sh "sleep 150"
 
-                    // 3. Run the tests
-                    sh "${DOCKER_COMPOSE} up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    echo "Starting tests..."
+                    sh "${DOCKER_COMPOSE} compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
                 }
             }
         }
@@ -44,13 +43,13 @@ pipeline {
         always {
             script {
                 echo "Extracting Test Report..."
-                // Using '|| true' so the pipeline doesn't fail if the report isn't ready yet
+                // Using standard docker cp
                 sh "docker cp bondar-playwright-tests-playwright-runner-1:/app/playwright-report ./ || true"
                 
                 archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
                 
                 echo "Cleaning up..."
-                sh "${DOCKER_COMPOSE} down"
+                sh "${DOCKER_COMPOSE} compose down"
             }
         }
     }
