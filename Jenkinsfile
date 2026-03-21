@@ -1,34 +1,49 @@
 pipeline {
     agent any
+
     stages {
         stage('Cleanup') {
             steps {
-                sh "docker-compose down --remove-orphans || true"
+                script {
+                    echo "Force cleaning previous environment..."
+                    // Using direct docker-compose to avoid path/alias issues
+                    sh "docker-compose down --remove-orphans || true"
+                    // Manually remove the specific test container name if it exists
+                    sh "docker rm -f playwright-test-container || true"
+                }
             }
         }
+
         stage('Run Tests') {
             steps {
                 script {
-                    echo "Starting App..."
+                    echo "1. Starting Angular App..."
                     sh "docker-compose up -d bondar-practice-app"
                     
-                    echo "Waiting 180s for Angular..."
+                    echo "2. Waiting 180s for 'Generating browser application bundles'..."
                     sh "sleep 180"
                     
-                    echo "Running tests in SINGLE-FILE mode to save memory..."
-                    // --workers=1 is the magic flag that stops the 30-minute hang
-                    sh "docker-compose run playwright-runner npx playwright test --workers=1 --project=chromium"
+                    echo "3. Running tests (Single Worker, Chromium Only)..."
+                    // --name playwright-test-container makes the 'docker cp' command foolproof
+                    // --workers=1 reduces RAM usage to prevent 'unexpected EOF'
+                    sh "docker-compose run --name playwright-test-container playwright-runner npx playwright test --workers=1 --project=chromium"
                 }
             }
         }
     }
+
     post {
         always {
             script {
-                // Better container finding logic for the report
-                sh "docker cp \$(docker ps -aqf 'name=playwright-runner' | head -n 1):/app/playwright-report ./ || true"
+                echo "Attempting to extract report from playwright-test-container..."
+                // No more 'docker ps' logic; we know the name because we set it above
+                sh "docker cp playwright-test-container:/app/playwright-report ./ || true"
+                
                 archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
+                
+                echo "Final Cleanup..."
                 sh "docker-compose down"
+                sh "docker rm -f playwright-test-container || true"
             }
         }
     }
