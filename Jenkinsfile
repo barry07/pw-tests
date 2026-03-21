@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     stages {
-        stage('Cleanup') {
+        stage('Cleanup Environment') {
             steps {
                 script {
-                    echo "Force cleaning previous runs..."
-                    // Direct command, no variables to mess up
-                    sh "/usr/local/bin/docker compose down --remove-orphans || true"
+                    echo "Stopping any old containers..."
+                    // We use 'docker-compose' as a single command to avoid the double 'compose' issue
+                    sh "docker-compose down --remove-orphans || true"
                 }
             }
         }
@@ -15,15 +15,14 @@ pipeline {
         stage('Run Playwright Tests') {
             steps {
                 script {
-                    echo "Starting Angular App..."
-                    sh "/usr/local/bin/docker compose up -d bondar-practice-app"
+                    echo "1. Starting the Angular App..."
+                    sh "docker-compose up -d bondar-practice-app"
 
-                    // This is the long wait for 'Generating browser application bundles'
-                    echo "Waiting 160 seconds for Angular compilation..."
-                    sh "sleep 160"
+                    echo "2. Waiting 180 seconds for Angular compilation..."
+                    sh "sleep 180"
 
-                    echo "Launching Playwright Runner..."
-                    sh "/usr/local/bin/docker compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    echo "3. Launching Playwright Runner..."
+                    sh "docker-compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
                 }
             }
         }
@@ -32,14 +31,12 @@ pipeline {
     post {
         always {
             script {
-                echo "Attempting to copy report..."
-                // We use the project name prefix 'bondar-playwright-tests' 
+                echo "Extracting Test Report..."
                 sh "docker cp bondar-playwright-tests-playwright-runner-1:/app/playwright-report ./ || true"
-                
                 archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
                 
                 echo "Final Cleanup..."
-                sh "/usr/local/bin/docker compose down"
+                sh "docker-compose down"
             }
         }
     }
