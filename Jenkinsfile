@@ -1,41 +1,30 @@
 pipeline {
     agent any
-
     stages {
-        stage('Cleanup Environment') {
+        stage('Cleanup') {
             steps {
-                script {
-                    echo "Stopping any old containers..."
-                    // We use 'docker-compose' as a single command to avoid the double 'compose' issue
-                    sh "docker-compose down --remove-orphans || true"
-                }
+                sh "docker-compose down --remove-orphans || true"
             }
         }
-
-        stage('Run Playwright Tests') {
+        stage('Run Tests') {
             steps {
                 script {
-                    echo "1. Starting the Angular App..."
                     sh "docker-compose up -d bondar-practice-app"
-
-                    echo "2. Waiting 180 seconds for Angular compilation..."
+                    echo "Waiting for Angular..."
                     sh "sleep 180"
-
-                    echo "3. Launching Playwright Runner..."
-                    sh "docker-compose up --build --abort-on-container-exit --exit-code-from playwright-runner"
+                    
+                    // The Fix: --workers=1 and --project=chromium
+                    // This prevents the 'Unexpected EOF' memory crash
+                    sh "docker-compose run --build playwright-runner npx playwright test --workers=1 --project=chromium"
                 }
             }
         }
     }
-
     post {
         always {
             script {
-                echo "Extracting Test Report..."
-                sh "docker cp bondar-playwright-tests-playwright-runner-1:/app/playwright-report ./ || true"
+                sh "docker cp \$(docker ps -aqf 'name=playwright-runner'):/app/playwright-report ./ || true"
                 archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
-                
-                echo "Final Cleanup..."
                 sh "docker-compose down"
             }
         }
