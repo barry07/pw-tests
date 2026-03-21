@@ -1,7 +1,12 @@
-FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+# Stage 1: Build the Angular app
+FROM node:18-alpine as build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-# This ensures the config is found in the current WORKDIR
-CMD ["npx", "playwright", "test"]
+RUN npm run build --configuration=production
+
+# Stage 2: Serve with Nginx (Tiny!)
+FROM nginx:alpine
+COPY --from=build /app/dist/your-app-name /usr/share/nginx/html
+EXPOSE 80
