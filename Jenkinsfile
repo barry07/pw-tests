@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS 25.8.1' // Make sure this matches the NodeJS version you have configured in Jenkins
+    }
+
     environment {
         /* Inside a Docker container, 'localhost' is the container itself.
            'host.docker.internal' lets Jenkins talk to your App container 
